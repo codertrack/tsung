@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<!DOCTYPE tsung SYSTEM "/usr/local/share/tsung/tsung-1.0.dtd">
+<tsung loglevel="debug" version="1.0">
+    <clients>
+        <client host="localhost" ></client>
+    </clients>
+
+	<servers>
+        <server host="127.0.0.1" port="18830" type="tcp" />
+	</servers>
+
+    <load>
+        <user session="mqtt_subscriber" start_time="10" unit="second"></user>
+        <arrivalphase phase="1" duration="3" unit="second">
+            <users maxnumber="1" arrivalrate="1" unit="second"/>
+        </arrivalphase>
+    </load>
+
+    <sessions>
+        <session name="mqtt_publisher" probability="100" type="ts_mqtt4">
+            <request>
+                <mqtt4 type="connect" clean_session="true" keepalive="10" will_topic="will_topic" will_qos="0" will_msg="will_msg" will_retain="false"></mqtt4>
+            </request>
+
+            <for from="1" to="10" incr="1" var="loops">
+                <request subst="true">
+                    <mqtt4 type="publish" topic="test_topic" qos="1" retained="true">test_message</mqtt4>
+                </request>
+            </for>
+
+            <request>
+                <mqtt4 type="disconnect"></mqtt4>
+            </request>
+        </session>
+        <session name="mqtt_subscriber" probability="0" type="ts_mqtt">
+            <request>
+                <mqtt4 type="connect" clean_session="true" keepalive="10"></mqtt4>
+            </request>
+
+            <request subst="true">
+                <mqtt4 type="subscribe" topic="test_topic" qos="1"></mqtt4>
+            </request>
+
+            <request>
+                <!-- wait for 60s -->
+                <mqtt4 type="waitForMessages" timeout="60"></mqtt4>
+            </request>
+
+            <request subst="true">
+                <mqtt4 type="unsubscribe" topic="test_topic"></mqtt4>
+            </request>
+
+            <request>
+                <mqtt4 type="disconnect"></mqtt4>
+            </request>
+        </session>
+    </sessions>
+</tsung>

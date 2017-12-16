@@ -97,6 +97,7 @@ get_message(#mqtt_request{type = connect, clean_start = CleanStart,
     Message = #mqtt{type = ?CONNECT, arg = Options},
     {mqtt_frame:encode(Message),
      MqttSession#mqtt_session{wait = ?CONNACK, keepalive = KeepAlive}};
+
 get_message(#mqtt_request{type = disconnect},
             #state_rcv{session = MqttSession}) ->
     PingPid = MqttSession#mqtt_session.ping_pid,

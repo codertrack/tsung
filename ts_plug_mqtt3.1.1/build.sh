@@ -11,11 +11,11 @@ cp ./tsung-1.0.dtd ./../tsung-1.0.dtd
 
 cd ../
 
-./configure --prefix=/usr/local
+./configure
 
-make uninstall
+sudo make uninstall
 
-make install
+sudo make install
 
 
 

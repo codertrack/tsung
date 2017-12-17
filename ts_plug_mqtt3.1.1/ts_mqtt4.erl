@@ -31,7 +31,7 @@
 
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
--include("ts_mqtt.hrl").
+-include("ts_mqtt4.hrl").
 -include("mqtt.hrl").
 
 -export([add_dynparams/4,
@@ -77,7 +77,7 @@ dump(A, B) ->
 %% Args:	record
 %% Returns: binary
 %%----------------------------------------------------------------------
-get_message(#mqtt_request{type = connect, clean_start = CleanStart,
+get_message(#mqtt4_request{type = connect, clean_start = CleanStart,
   keepalive = KeepAlive, will_topic = WillTopic,
   will_qos = WillQos, will_msg = WillMsg,
   will_retain = WillRetain, username = UserName, password = Password},
@@ -98,7 +98,7 @@ get_message(#mqtt_request{type = connect, clean_start = CleanStart,
   {mqtt_frame:encode(Message),
     MqttSession#mqtt_session{wait = ?CONNACK, keepalive = KeepAlive}};
 
-get_message(#mqtt_request{type = disconnect},
+get_message(#mqtt4_request{type = disconnect},
     #state_rcv{session = MqttSession}) ->
   PingPid = MqttSession#mqtt_session.ping_pid,
   PingPid ! stop,
@@ -106,7 +106,7 @@ get_message(#mqtt_request{type = disconnect},
   ts_mon_cache:add({count, mqtt_disconnected}),
   {mqtt_frame:encode(Message),
     MqttSession#mqtt_session{wait = none, status = disconnect}};
-get_message(#mqtt_request{type = publish, topic = Topic, qos = Qos,
+get_message(#mqtt4_request{type = publish, topic = Topic, qos = Qos,
   retained = Retained, payload = Payload},
     #state_rcv{session = MqttSession = #mqtt_session{curr_id = Id}}) ->
   NewMqttSession = case Qos of
@@ -123,14 +123,14 @@ get_message(#mqtt_request{type = publish, topic = Topic, qos = Qos,
          end,
   ts_mon_cache:add({count, mqtt_published}),
   {mqtt_frame:encode(Message), NewMqttSession#mqtt_session{wait = Wait}};
-get_message(#mqtt_request{type = subscribe, topic = Topic, qos = Qos},
+get_message(#mqtt4_request{type = subscribe, topic = Topic, qos = Qos},
     #state_rcv{session = MqttSession = #mqtt_session{curr_id = Id}}) ->
   NewMqttSession = MqttSession#mqtt_session{curr_id = Id + 1},
   Arg = [#sub{topic = Topic, qos = Qos}],
   MsgId = NewMqttSession#mqtt_session.curr_id,
   Message = #mqtt{id = MsgId, type = ?SUBSCRIBE, arg = Arg},
   {mqtt_frame:encode(Message), NewMqttSession#mqtt_session{wait = ?SUBACK}};
-get_message(#mqtt_request{type = unsubscribe, topic = Topic},
+get_message(#mqtt4_request{type = unsubscribe, topic = Topic},
     #state_rcv{session = MqttSession = #mqtt_session{curr_id = Id}}) ->
   NewMqttSession = MqttSession#mqtt_session{curr_id = Id + 1},
   Arg = [#sub{topic = Topic}],
@@ -262,7 +262,7 @@ parse_config(Element, Conf) ->
 %% Returns: #websocket_request
 %%----------------------------------------------------------------------
 add_dynparams(true, {DynVars, _S},
-    Param = #mqtt_request{type = connect, clean_start = CleanStart,
+    Param = #mqtt4_request{type = connect, clean_start = CleanStart,
       keepalive = KeepAlive, will_topic = WillTopic,
       will_qos = WillQos, will_msg = WillMsg,
       will_retain = WillRetain, username = UserName,
@@ -270,7 +270,7 @@ add_dynparams(true, {DynVars, _S},
     _HostData) ->
   NewUserName = ts_search:subst(UserName, DynVars),
   NewPassword = ts_search:subst(Password, DynVars),
-  Param#mqtt_request{ type = connect,
+  Param#mqtt4_request{ type = connect,
     clean_start = CleanStart,
     keepalive = KeepAlive, will_topic = WillTopic,
     will_qos = WillQos, will_msg = WillMsg,
@@ -278,24 +278,24 @@ add_dynparams(true, {DynVars, _S},
     username = NewUserName,
     password = NewPassword };
 add_dynparams(true, {DynVars, _S},
-    Param = #mqtt_request{type = publish, topic = Topic,
+    Param = #mqtt4_request{type = publish, topic = Topic,
       payload = Payload},
     _HostData) ->
   NewTopic = ts_search:subst(Topic, DynVars),
   NewPayload = ts_search:subst(Payload, DynVars),
-  Param#mqtt_request{topic = NewTopic, payload = NewPayload};
+  Param#mqtt4_request{topic = NewTopic, payload = NewPayload};
 add_dynparams(true, {DynVars, _S},
-    Param = #mqtt_request{type = subscribe, topic = Topic},
+    Param = #mqtt4_request{type = subscribe, topic = Topic},
     _HostData) ->
   NewTopic = ts_search:subst(Topic, DynVars),
-  Param#mqtt_request{topic = NewTopic};
+  Param#mqtt4_request{topic = NewTopic};
 add_dynparams(true, {DynVars, _S},
-    Param = #mqtt_request{type = unsubscribe, topic = Topic},
+    Param = #mqtt4_request{type = unsubscribe, topic = Topic},
     _HostData) ->
   NewTopic = ts_search:subst(Topic, DynVars),
-  Param#mqtt_request{topic = NewTopic};
+  Param#mqtt4_request{topic = NewTopic};
 add_dynparams(_Bool, _DynData, Param, _HostData) ->
-  Param#mqtt_request{}.
+  Param#mqtt4_request{}.
 
 %%%===================================================================
 %%% Internal functions

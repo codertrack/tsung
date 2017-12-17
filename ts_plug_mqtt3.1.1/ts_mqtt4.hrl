@@ -29,7 +29,7 @@
 %% use by the client to create the request
 
 
--record(mqtt_request, {
+-record(mqtt4_request, {
           type,
           clean_start = true,
           keepalive = 10, % 10s

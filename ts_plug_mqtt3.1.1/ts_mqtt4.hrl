@@ -25,10 +25,6 @@
 
 -vc('$Id$ ').
 -author('wukai').
-
-%% use by the client to create the request
-
-
 -record(mqtt4_request, {
           type,
           clean_start = true,

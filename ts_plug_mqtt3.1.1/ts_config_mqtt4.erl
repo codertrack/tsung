@@ -50,7 +50,7 @@ parse_config(Element = #xmlElement{name = mqtt},
       subst = SubstFlag, match = MatchRegExp}) ->
   Type = ts_config:getAttr(atom, Element#xmlElement.attributes, type),
   CleanStart = ts_config:getAttr(atom, Element#xmlElement.attributes,
-    clean_start, true),
+    clean_session, true),
   UserName = ts_config:getAttr(string, Element#xmlElement.attributes,
     username, undefined),
   Password = ts_config:getAttr(string, Element#xmlElement.attributes,

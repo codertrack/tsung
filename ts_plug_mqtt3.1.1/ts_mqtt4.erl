@@ -32,7 +32,7 @@
 -include("ts_profile.hrl").
 -include("ts_config.hrl").
 -include("ts_mqtt4.hrl").
--include("mqtt.hrl").
+-include("mqtt4.hrl").
 
 -export([add_dynparams/4,
   get_message/2,

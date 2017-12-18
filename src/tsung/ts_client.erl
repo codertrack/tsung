@@ -542,6 +542,7 @@ handle_next_action(State=#state_rcv{dynvars = DynVars}) ->
             ts_mon_cache:add({ count, abort_session }),
             {stop, normal, State};
         Other ->
+            ?LOGF("handle_call get req ~p",[cao],?ERR),
             ?LOGF("Error: set profile return value is ~p (count=~p)~n",[Other,Count],?ERR),
             {stop, set_profile_error, State}
     end.

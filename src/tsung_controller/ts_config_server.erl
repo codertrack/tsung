@@ -249,6 +249,7 @@ handle_call({read_config, ConfigFile}, _From, State=#state{logdir=LogDir}) ->
 handle_call({get_req, Id, N}, _From, State) ->
     Config = State#state.config,
     Tab    = Config#config.session_tab,
+    ?LOGF("ok, config ~p table ~p~n",[Config,Tab],?ERR),
     ?DebugF("look for ~p th request in session ~p for ~p~n",[N,Id,_From]),
     case ets:lookup(Tab, {Id, N}) of
         [{_, Session}] ->

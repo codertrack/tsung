@@ -28,13 +28,13 @@
 
 -define(MQTT_PORT, 1883).
 
--define(PROTOCOL_NAME, "MQIsdp").
--define(PROTOCOL_VERSION, 3).
+-define(PROTOCOL_NAME, "MQTT").
+-define(PROTOCOL_VERSION, 4).
 
 -define(UNUSED, 0).
 
--define(USERNAME, undefined).
--define(PASSWORD, undefined).
+-define(USERNAME, "user").
+-define(PASSWORD, "user").
 
 -define(DEFAULT_KEEPALIVE, 120).
 -define(DEFAULT_RETRY, 120).

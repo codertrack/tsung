@@ -39,6 +39,7 @@
 encode(#mqtt{} = Message) ->
   {VariableHeader, Payload} = encode_message(Message),
   FixedHeader = encode_fixed_header(Message),
+  
   EncodedLength = encode_length(size(VariableHeader) + size(Payload)),
   <<FixedHeader/binary, EncodedLength/binary, VariableHeader/binary, Payload/binary>>.
 
@@ -361,8 +362,12 @@ encode_length(Length, Buff) ->
   <<Buff/binary, Current/binary>>.
 
 encode_fixed_header(Message) when is_record(Message, mqtt) ->
-  <<(Message#mqtt.type):4/big, (Message#mqtt.dup):1, (Message#mqtt.qos):2/big, (Message#mqtt.retain):1>>.
-
+  case Message#mqtt.type of
+    ?PUBREL  -> <<(Message#mqtt.type):4/big, 0:1, 1:2/big, 0:1>>;
+    ?SUBSCRIBE  -> <<(Message#mqtt.type):4/big, 0:1, 1:2/big, 0:1>>;
+    ?UNSUBSCRIBE  -> <<(Message#mqtt.type):4/big, 0:1, 1:2/big, 0:1>>;
+    _->  <<(Message#mqtt.type):4/big, (Message#mqtt.dup):1, (Message#mqtt.qos):2/big, (Message#mqtt.retain):1>>
+end.
 decode_fixed_header(Byte) ->
   <<Type:4/big, Dup:1, QoS:2/big, Retain:1>> = Byte,
   #mqtt{type = Type, dup = Dup, qos = QoS, retain = Retain}.

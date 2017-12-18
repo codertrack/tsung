@@ -54,6 +54,7 @@
                        ts_local_mon,
                        ts_mon_cache,
                        ts_mqtt,
+                       ts_mqtt4,
                        ts_mysql,
                        ts_pgsql,
                        ts_plugin,

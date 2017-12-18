@@ -105,6 +105,7 @@ init([]) ->
 %%--------------------------------------------------------------------
 %% get Nth request from given session Id
 handle_call({get_req, Id, N}, _From, State) ->
+
     Tab = State#state.table,
     Total = State#state.total+1,
     ?DebugF("look for ~p th request in session ~p for ~p~n",[N,Id,_From]),
@@ -115,16 +116,20 @@ handle_call({get_req, Id, N}, _From, State) ->
             ?DebugF("hitrate is ~.3f~n",[100.0*Hit/Total]),
             {reply, Session, State#state{hit= Hit, total = Total}};
         [] -> %% no match, ask the config_server
+
             ?DebugF("not found in cache (~p th request in session ~p for ~p)~n",[N,Id,_From]),
+
             case catch ts_config_server:get_req(Id, N) of
                 {'EXIT',Reason}  ->
+                    ?LOGF("get_req handle ts_config_server exit ~p",[Reason],?ERR),
                     {reply, {error, Reason}, State};
                 Reply ->
-                    %% cache the response FIXME: handle bad response ?
+                    ?LOGF("get_req handle ts_config_server replay ~p",[Reply],?ERR),
                     ets:insert(Tab, {{Id, N}, Reply}),
                     {reply, Reply, State#state{total = Total}}
             end;
         Other -> %%
+            ?LOGF("Error: set profile OtherValue ~p",[Other],?ERR),
             ?LOGF("error ! (~p)~n",[Other],?WARN),
             {reply, {error, Other}, State}
     end;

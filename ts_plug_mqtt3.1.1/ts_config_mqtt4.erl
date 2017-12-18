@@ -43,18 +43,20 @@
 %%----------------------------------------------------------------------
 %% Parsing other elements
 parse_config(Element = #xmlElement{name = dyn_variable}, Conf = #config{}) ->
+  ?LOGF("parse_config config ~p table ~p~n",[?MODULE,2],?ERR),
   ts_config:parse(Element, Conf);
-parse_config(Element = #xmlElement{name = mqtt},
+parse_config(Element = #xmlElement{name = mqtt4},
     Config = #config{curid = Id, session_tab = Tab,
       sessions = [CurS | _], dynvar = DynVar,
       subst = SubstFlag, match = MatchRegExp}) ->
+  ?LOGF("ok,parse_config config ~p table ~p~n",[Config,Tab],?ERR),
   Type = ts_config:getAttr(atom, Element#xmlElement.attributes, type),
   CleanStart = ts_config:getAttr(atom, Element#xmlElement.attributes,
-    clean_session, true),
+    clean_start, true),
   UserName = ts_config:getAttr(string, Element#xmlElement.attributes,
-    username, user),
+    username, "user"),
   Password = ts_config:getAttr(string, Element#xmlElement.attributes,
-    password, user),
+    password, "user"),
   KeepAlive = ts_config:getAttr(float_or_integer, Element#xmlElement.attributes,
     keepalive, 10),
   WillTopic = ts_config:getAttr(string, Element#xmlElement.attributes,
@@ -107,8 +109,7 @@ parse_config(Element = #xmlElement{name = mqtt},
   ?LOGF("request tab: ~p~n", [ets:match(Tab, '$1')], ?INFO),
 
   lists:foldl( fun(A, B)->ts_config:parse(A, B) end,
-    Config#config{dynvar = []},
-    Element#xmlElement.content);
+    Config#config{dynvar = []}, Element#xmlElement.content);
 
 %% Parsing other elements
 parse_config(Element = #xmlElement{}, Conf = #config{}) ->

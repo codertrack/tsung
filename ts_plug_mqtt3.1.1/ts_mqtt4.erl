@@ -58,7 +58,7 @@ session_defaults() ->
 %% @doc We need to decode buffer (remove chunks, decompress ...) for
 %%      matching or dyn_variables
 %% @end
-decode_buffer(Buffer, #mqtt_session{}) ->
+decode_buffer(Buffer, #mqtt4_session{}) ->
   Buffer.
 
 %%----------------------------------------------------------------------
@@ -67,7 +67,8 @@ decode_buffer(Buffer, #mqtt_session{}) ->
 %% Returns: record or []
 %%----------------------------------------------------------------------
 new_session() ->
-  #mqtt_session{}.
+  ?LOGF("new_session ~p",[cao],?ERR),
+  #mqtt4_session{}.
 
 dump(A, B) ->
   ts_plugin:dump(A,B).
@@ -82,6 +83,8 @@ get_message(#mqtt4_request{type = connect, clean_start = CleanStart,
   will_qos = WillQos, will_msg = WillMsg,
   will_retain = WillRetain, username = UserName, password = Password},
     #state_rcv{session = MqttSession}) ->
+
+  ?LOGF("new_session ~p",[cao],?ERR),
   ClientId = ["tsung-", ts_utils:randombinstr(10)],
   PublishOptions = mqtt4_frame:set_publish_options([{qos, WillQos},
     {retain, WillRetain}]),
@@ -96,25 +99,25 @@ get_message(#mqtt4_request{type = connect, clean_start = CleanStart,
     Will]),
   Message = #mqtt{type = ?CONNECT, arg = Options},
   {mqtt4_frame:encode(Message),
-    MqttSession#mqtt_session{wait = ?CONNACK, keepalive = KeepAlive}};
+    MqttSession#mqtt4_session{wait = ?CONNACK, keepalive = KeepAlive}};
 
 get_message(#mqtt4_request{type = disconnect},
     #state_rcv{session = MqttSession}) ->
-  PingPid = MqttSession#mqtt_session.ping_pid,
+  PingPid = MqttSession#mqtt4_session.ping_pid,
   PingPid ! stop,
   Message = #mqtt{type = ?DISCONNECT},
   ts_mon_cache:add({count, mqtt_disconnected}),
   {mqtt4_frame:encode(Message),
-    MqttSession#mqtt_session{wait = none, status = disconnect}};
+    MqttSession#mqtt4_session{wait = none, status = disconnect}};
 get_message(#mqtt4_request{type = publish, topic = Topic, qos = Qos,
   retained = Retained, payload = Payload},
-    #state_rcv{session = MqttSession = #mqtt_session{curr_id = Id}}) ->
+    #state_rcv{session = MqttSession = #mqtt4_session{curr_id = Id}}) ->
   NewMqttSession = case Qos of
                      0 -> MqttSession;
-                     _ -> MqttSession#mqtt_session{curr_id = Id + 1}
+                     _ -> MqttSession#mqtt4_session{curr_id = Id + 1}
                    end,
 
-  MsgId = NewMqttSession#mqtt_session.curr_id,
+  MsgId = NewMqttSession#mqtt4_session.curr_id,
   Message = #mqtt{id = MsgId, type = ?PUBLISH, qos = Qos, retain = Retained,
     arg = {Topic, Payload}},
   Wait = case Qos of
@@ -122,21 +125,21 @@ get_message(#mqtt4_request{type = publish, topic = Topic, qos = Qos,
            _ -> none
          end,
   ts_mon_cache:add({count, mqtt_published}),
-  {mqtt4_frame:encode(Message), NewMqttSession#mqtt_session{wait = Wait}};
+  {mqtt4_frame:encode(Message), NewMqttSession#mqtt4_session{wait = Wait}};
 get_message(#mqtt4_request{type = subscribe, topic = Topic, qos = Qos},
-    #state_rcv{session = MqttSession = #mqtt_session{curr_id = Id}}) ->
-  NewMqttSession = MqttSession#mqtt_session{curr_id = Id + 1},
+    #state_rcv{session = MqttSession = #mqtt4_session{curr_id = Id}}) ->
+  NewMqttSession = MqttSession#mqtt4_session{curr_id = Id + 1},
   Arg = [#sub{topic = Topic, qos = Qos}],
-  MsgId = NewMqttSession#mqtt_session.curr_id,
+  MsgId = NewMqttSession#mqtt4_session.curr_id,
   Message = #mqtt{id = MsgId, type = ?SUBSCRIBE, arg = Arg},
-  {mqtt4_frame:encode(Message), NewMqttSession#mqtt_session{wait = ?SUBACK}};
+  {mqtt4_frame:encode(Message), NewMqttSession#mqtt4_session{wait = ?SUBACK}};
 get_message(#mqtt4_request{type = unsubscribe, topic = Topic},
-    #state_rcv{session = MqttSession = #mqtt_session{curr_id = Id}}) ->
-  NewMqttSession = MqttSession#mqtt_session{curr_id = Id + 1},
+    #state_rcv{session = MqttSession = #mqtt4_session{curr_id = Id}}) ->
+  NewMqttSession = MqttSession#mqtt4_session{curr_id = Id + 1},
   Arg = [#sub{topic = Topic}],
-  MsgId = NewMqttSession#mqtt_session.curr_id,
+  MsgId = NewMqttSession#mqtt4_session.curr_id,
   Message = #mqtt{id = MsgId, type = ?UNSUBSCRIBE, arg = Arg},
-  {mqtt4_frame:encode(Message),NewMqttSession#mqtt_session{wait = ?UNSUBACK}}.
+  {mqtt4_frame:encode(Message),NewMqttSession#mqtt4_session{wait = ?UNSUBACK}}.
 
 %%----------------------------------------------------------------------
 %% Function: parse/2
@@ -153,8 +156,8 @@ parse(Data, State=#state_rcv{acc = [], datasize= 0}) ->
 
 %% normal mqtt message
 parse(Data, State=#state_rcv{acc = [], session = MqttSession, socket = Socket}) ->
-  Wait = MqttSession#mqtt_session.wait,
-  AckBuf = MqttSession#mqtt_session.ack_buf,
+  Wait = MqttSession#mqtt4_session.wait,
+  AckBuf = MqttSession#mqtt4_session.ack_buf,
   case mqtt4_frame:decode(Data) of
     {_MqttMsg = #mqtt{type = Wait}, Left} ->
       ?DebugF("receive mqtt_msg: ~p ~p~n",
@@ -176,9 +179,9 @@ parse(Data, State=#state_rcv{acc = [], session = MqttSession, socket = Socket}) 
       NewMqttSession = case Wait of
                          ?CONNACK ->
                            Proto = State#state_rcv.protocol,
-                           KeepAlive = MqttSession#mqtt_session.keepalive,
+                           KeepAlive = MqttSession#mqtt4_session.keepalive,
                            PingPid = create_ping_proc(Proto, Socket, KeepAlive),
-                           MqttSession#mqtt_session{ping_pid = PingPid};
+                           MqttSession#mqtt4_session{ping_pid = PingPid};
                          _ -> MqttSession
                        end,
       {State#state_rcv{ack_done = true, acc = NewLeft,
@@ -193,7 +196,7 @@ parse(Data, State=#state_rcv{acc = [], session = MqttSession, socket = Socket}) 
                            EncodedData = mqtt4_frame:encode(Message),
                            ts_mon_cache:add({count, mqtt_server_published}),
                            NewAckBuf =  <<AckBuf/binary, EncodedData/binary>>,
-                           MqttSession#mqtt_session{ack_buf = NewAckBuf};
+                           MqttSession#mqtt4_session{ack_buf = NewAckBuf};
                          _ -> MqttSession
                        end,
       {State#state_rcv{ack_done = false, acc = Left,
@@ -209,16 +212,16 @@ parse(Data, State=#state_rcv{acc = Acc, datasize = DataSize}) ->
     State#state_rcv{acc = [], datasize = NewSize}).
 
 parse_bidi(<<>>, State=#state_rcv{acc = [], session = MqttSession}) ->
-  AckBuf = MqttSession#mqtt_session.ack_buf,
+  AckBuf = MqttSession#mqtt4_session.ack_buf,
   Ack = case AckBuf of
           <<>> -> nodata;
           _ -> AckBuf
         end,
-  NewMqttSession = MqttSession#mqtt_session{ack_buf = <<>>},
+  NewMqttSession = MqttSession#mqtt4_session{ack_buf = <<>>},
   ?DebugF("ack buf: ~p~n", [AckBuf]),
   {Ack, State#state_rcv{session = NewMqttSession}, think};
 parse_bidi(Data, State=#state_rcv{acc = [], session = MqttSession}) ->
-  AckBuf = MqttSession#mqtt_session.ack_buf,
+  AckBuf = MqttSession#mqtt4_session.ack_buf,
   case mqtt4_frame:decode(Data) of
     {_MqttMsg = #mqtt{type = ?PUBLISH, qos = Qos, id = MessageId}, Left} ->
       ?DebugF("receive bidi mqtt_msg: ~p ~p~n",
@@ -233,7 +236,7 @@ parse_bidi(Data, State=#state_rcv{acc = [], session = MqttSession}) ->
               _ -> <<>>
             end,
       NewAckBuf = <<AckBuf/binary, Ack/binary>>,
-      NewMqttSession = MqttSession#mqtt_session{ack_buf = NewAckBuf},
+      NewMqttSession = MqttSession#mqtt4_session{ack_buf = NewAckBuf},
       parse_bidi(Left, State#state_rcv{session = NewMqttSession});
     {_MqttMsg = #mqtt{type = _Type}, Left} ->
       ?DebugF("receive bidi mqtt_msg: ~p ~p~n",

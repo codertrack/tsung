@@ -22,7 +22,6 @@
 %%%  the two; the MPL (Mozilla Public License), which EPL (Erlang
 %%%  Public License) is based on, is included in this exception.
 
-
 -vc('$Id$ ').
 -author('wukai').
 -record(mqtt4_request, {
@@ -41,12 +40,12 @@
           password
          }).
 
--record(mqtt_dyndata, {
+-record(mqtt4_dyndata, {
           none
          }
        ).
 
--record(mqtt_session, {
+-record(mqtt4_session, {
           ack_buf = <<>>,
           ping_pid,
           keepalive,

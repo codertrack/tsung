@@ -33,8 +33,8 @@
 
 -define(UNUSED, 0).
 
--define(USERNAME, user).
--define(PASSWORD, undefined).
+-define(USERNAME, "user").
+-define(PASSWORD, "user").
 
 -define(DEFAULT_KEEPALIVE, 120).
 -define(DEFAULT_RETRY, 120).
